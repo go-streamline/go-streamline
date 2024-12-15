@@ -1,0 +1,17 @@
+engine:
+  workdir: /tmp/streamline
+  maxWorkers: 2
+  flowCheckInterval: 60
+  flowBatchSize: 100
+writeAheadLog:
+  enabled: false
+logging:
+  level: info
+  filename: ./logs/streamline.log
+  maxSizeMB: 5
+  maxAgeDays: 7
+  maxBackups: 3
+  compress: true
+  logToConsole: true
+  customLogLevel:
+    branch_tracker: warn
