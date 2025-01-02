@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"github.com/go-streamline/core/flow/persist"
 	"github.com/go-streamline/core/state"
 	"github.com/go-streamline/core/zookeeper"
@@ -25,6 +26,7 @@ type Config struct {
 		MaxWorkers        int    `yaml:"maxWorkers"`
 		FlowCheckInterval int    `yaml:"flowCheckInterval"`
 		FlowBatchSize     int    `yaml:"flowBatchSize"`
+		ErrorHandlingPath string `yaml:"errorHandlingPath"`
 	} `yaml:"engine"`
 	Zookeeper struct {
 		Path             string `yaml:"path"`
@@ -46,6 +48,10 @@ type Config struct {
 		LogToConsole    bool              `yaml:"logToConsole"`
 		CustomLogLevels map[string]string `yaml:"customLogLevel"`
 	} `yaml:"logging"`
+}
+
+type EngineErrorHandler interface {
+	Handle(sessionUpdate definitions.SessionUpdate) error
 }
 
 func LoadConfig(filePath string) (*Config, error) {
@@ -94,11 +100,13 @@ func SetupStateManagement(cfg *Config, zkClient *zk.Conn) definitions.StateManag
 }
 
 func Initialize(
+	ctx context.Context,
 	configPath string,
 	createProcessorFactory func(definitions.StateManagerFactory) definitions.ProcessorFactory,
 	createDB func(*Config) (*gorm.DB, error),
 	logFactoryCreator func(cfg *Config) (definitions.LoggerFactory, error),
 	setupWriteAheadLogger func(cfg *Config, factory definitions.LoggerFactory) (definitions.WriteAheadLogger, error),
+	engineErrorHandlerCreator func(cfg *Config) EngineErrorHandler,
 ) *fiber.App {
 	cfg, err := LoadConfig(configPath)
 	if err != nil {
@@ -147,5 +155,20 @@ func Initialize(
 	if err != nil {
 		log.WithError(err).Fatal("failed to run engine")
 	}
+	engineErrorHandler := engineErrorHandlerCreator(cfg)
+	go func() {
+		for {
+			select {
+			case sessionUpdate := <-e.SessionUpdates():
+				err := engineErrorHandler.Handle(sessionUpdate)
+				if err != nil {
+					log.WithError(err).Error("failed to handle session update")
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	return http.NewFlowManagerAPI(flowManager, processorFactory)
 }

@@ -12,18 +12,24 @@ import (
 	"path"
 	"path/filepath"
 	"streamline/config"
+	"streamline/engineerrors"
 	"strings"
 )
 
 var (
-	CreateProcessorFactory = standard_processors_bundle.Create
-	CreateDB               = createDB
-	CreateWriteAheadLogger = createWriteAheadLogger
-	CreateLoggerFactory    = createLoggerFactory
+	CreateProcessorFactory   = standard_processors_bundle.Create
+	CreateDB                 = createDB
+	CreateWriteAheadLogger   = createWriteAheadLogger
+	CreateLoggerFactory      = createLoggerFactory
+	CreateEngineErrorHandler = createEngineErrorHandler
 )
 
 func createDB(cfg *config.Config) (*gorm.DB, error) {
 	return gorm.Open(sqlite.Open(path.Join(cfg.Engine.Workdir, "flow.db")), &gorm.Config{})
+}
+
+func createEngineErrorHandler(cfg *config.Config) config.EngineErrorHandler {
+	return engineerrors.CreateEngineErrorHandler(cfg.Engine.ErrorHandlingPath)
 }
 
 func createLoggerFactory(cfg *config.Config) (definitions.LoggerFactory, error) {

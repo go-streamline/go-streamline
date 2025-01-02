@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -10,12 +11,15 @@ import (
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
 	app := config.Initialize(
+		ctx,
 		os.Args[1],
 		standard.CreateProcessorFactory,
 		standard.CreateDB,
 		standard.CreateLoggerFactory,
 		standard.CreateWriteAheadLogger,
+		standard.CreateEngineErrorHandler,
 	)
 	go func() {
 		err := app.Listen(":8080")
@@ -27,4 +31,5 @@ func main() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM)
 	<-ch
+	cancel()
 }
