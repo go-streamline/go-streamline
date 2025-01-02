@@ -27,6 +27,9 @@ type Config struct {
 		FlowCheckInterval int    `yaml:"flowCheckInterval"`
 		FlowBatchSize     int    `yaml:"flowBatchSize"`
 		ErrorHandlingPath string `yaml:"errorHandlingPath"`
+		DB                struct {
+			DSN string `yaml:"dsn"`
+		} `yaml:"db"`
 	} `yaml:"engine"`
 	Zookeeper struct {
 		Path             string `yaml:"path"`

@@ -25,7 +25,7 @@ var (
 )
 
 func createDB(cfg *config.Config) (*gorm.DB, error) {
-	return gorm.Open(sqlite.Open(path.Join(cfg.Engine.Workdir, "flow.db")), &gorm.Config{})
+	return gorm.Open(sqlite.Open(cfg.Engine.DB.DSN), &gorm.Config{})
 }
 
 func createEngineErrorHandler(cfg *config.Config) config.EngineErrorHandler {

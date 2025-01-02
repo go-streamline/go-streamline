@@ -3,6 +3,8 @@ engine:
   maxWorkers: 2
   flowCheckInterval: 60
   flowBatchSize: 100
+  db:
+    dsn: /tmp/streamline/flow.db
 writeAheadLog:
   enabled: false
 logging:
