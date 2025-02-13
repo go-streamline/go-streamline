@@ -4,6 +4,8 @@ import (
 	coreconfig "github.com/go-streamline/core/config"
 	"github.com/go-streamline/core/logger"
 	"github.com/go-streamline/core/wal"
+	"github.com/go-streamline/go-streamline/config"
+	"github.com/go-streamline/go-streamline/engineerrors"
 	"github.com/go-streamline/interfaces/definitions"
 	standard_processors_bundle "github.com/go-streamline/standard-processors-bundle"
 	"github.com/sirupsen/logrus"
@@ -11,8 +13,6 @@ import (
 	"gorm.io/gorm"
 	"path"
 	"path/filepath"
-	"streamline/config"
-	"streamline/engineerrors"
 	"strings"
 )
 

@@ -2,10 +2,10 @@ package http
 
 import (
 	"fmt"
+	"github.com/go-streamline/go-streamline/dto"
 	"github.com/go-streamline/interfaces/definitions"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"streamline/dto"
 	"strings"
 	"time"
 )

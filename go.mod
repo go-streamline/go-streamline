@@ -1,4 +1,4 @@
-module streamline
+module github.com/go-streamline/go-streamline
 
 go 1.22
 

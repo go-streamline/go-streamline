@@ -7,6 +7,7 @@ import (
 	"github.com/go-streamline/core/zookeeper"
 	engineconfig "github.com/go-streamline/engine/configuration"
 	"github.com/go-streamline/engine/engine"
+	"github.com/go-streamline/go-streamline/http"
 	"github.com/go-streamline/interfaces/definitions"
 	"github.com/go-zookeeper/zk"
 	"github.com/gofiber/fiber/v2"
@@ -15,7 +16,6 @@ import (
 	"gorm.io/gorm"
 	"os"
 	"path"
-	"streamline/http"
 	"strings"
 	"time"
 )
@@ -163,9 +163,11 @@ func Initialize(
 		for {
 			select {
 			case sessionUpdate := <-e.SessionUpdates():
-				err := engineErrorHandler.Handle(sessionUpdate)
-				if err != nil {
-					log.WithError(err).Error("failed to handle session update")
+				if sessionUpdate.Error != nil {
+					err := engineErrorHandler.Handle(sessionUpdate)
+					if err != nil {
+						log.WithError(err).Error("failed to handle session update")
+					}
 				}
 			case <-ctx.Done():
 				return

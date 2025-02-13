@@ -2,13 +2,13 @@ package engineerrors
 
 import (
 	"fmt"
+	"github.com/go-streamline/go-streamline/config"
 	"github.com/go-streamline/interfaces/definitions"
 	"github.com/go-streamline/interfaces/utils"
 	"github.com/google/uuid"
 	"os"
 	"path"
 	"path/filepath"
-	"streamline/config"
 )
 
 var ErrFailedToCreateDir = fmt.Errorf("failed to create directory")

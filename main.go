@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"github.com/go-streamline/go-streamline/config"
+	"github.com/go-streamline/go-streamline/standard"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
-	"streamline/config"
-	"streamline/standard"
 	"syscall"
 )
 
