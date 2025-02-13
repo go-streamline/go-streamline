@@ -6,7 +6,6 @@ import (
 	"github.com/go-streamline/interfaces/definitions"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"strings"
 	"time"
 )
 
@@ -29,7 +28,7 @@ func (f *flowManagerAPI) setupRoutes(app *fiber.App) {
 	app.Get("/api/flows", f.listFlows)
 	app.Get("/api/flows/:id", f.getFlowByID)
 	app.Get("/api/flows/:id/processors", f.getFlowProcessors)
-	app.Get("/api/processors", f.getProcessors)
+	app.Get("/api/flows/:id/trigger-processors", f.getFlowTriggerProcessors)
 	app.Post("/api/flows/:id/activate", f.activateFlow)
 	app.Post("/api/flows", f.saveFlow)
 }
@@ -98,28 +97,18 @@ func (f *flowManagerAPI) getFlowProcessors(c *fiber.Ctx) error {
 	return c.JSON(processorsDTO)
 }
 
-func (f *flowManagerAPI) getProcessors(c *fiber.Ctx) error {
-	processorIDsParam := c.Query("ids")
-	if processorIDsParam == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Processor IDs are required"})
+func (f *flowManagerAPI) getFlowTriggerProcessors(c *fiber.Ctx) error {
+	flowID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid flow ID"})
 	}
-	processorIDsStrings := strings.Split(processorIDsParam, ",")
-	processorIDs := make([]uuid.UUID, 0, len(processorIDsStrings))
-	for _, idStr := range processorIDsStrings {
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid processor ID: " + idStr})
-		}
-		processorIDs = append(processorIDs, id)
-	}
-
-	processors, err := f.flowManager.GetProcessors(processorIDs)
+	processors, err := f.flowManager.GetTriggerProcessorsForFlow(flowID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	processorsDTO := make([]*dto.ProcessorDTO, len(processors))
+	processorsDTO := make([]*dto.TriggerProcessorDTO, len(processors))
 	for i, processor := range processors {
-		processorsDTO[i] = dto.ProcessorEntityToDTO(processor)
+		processorsDTO[i] = dto.TriggerProcessorEntityToDTO(processor)
 	}
 	return c.JSON(processorsDTO)
 }
@@ -156,9 +145,11 @@ func (f *flowManagerAPI) saveFlow(c *fiber.Ctx) error {
 	}
 
 	flow, err := dto.FlowDTOToEntity(&flowDTO)
-	flow.ID = uuid.New()
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+	if flow.ID == uuid.Nil {
+		flow.ID = uuid.New()
 	}
 	errs := f.validateProcessors(flow)
 	if errs != nil && len(errs) > 0 {
