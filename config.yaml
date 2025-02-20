@@ -1,19 +1,36 @@
 engine:
+  # Path to store the streamline engine data
   workdir: /tmp/streamline
+  # Number of workers to run the flow
   maxWorkers: 2
+  # Interval in seconds to fetch the flows from the database
   flowCheckInterval: 60
+  # Number of flows to fetch in a batch
   flowBatchSize: 100
   db:
+    # Connection string for the database
     dsn: /tmp/streamline/flow.db
 writeAheadLog:
-  enabled: false
-logging:
-  level: info
-  filename: ./logs/streamline.log
+  # Enable WAL for flow execution
+  enabled: true
+  maxBackups: 3
   maxSizeMB: 5
   maxAgeDays: 7
+logging:
+  # Log level
+  level: info
+  # Log file path (./ is the working directory)
+  filename: ./logs/streamline.log
+  # Max size of the log file in MB
+  maxSizeMB: 5
+  # Max age of the log file in days
+  maxAgeDays: 7
+  # Max number of log files to keep
   maxBackups: 3
+  # Compress the log files
   compress: true
+  # Log to console
   logToConsole: true
+  # Custom log level per logger name
   customLogLevel:
     branch_tracker: warn

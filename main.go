@@ -14,7 +14,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	app := config.Initialize(
 		ctx,
-		os.Args[1],
+		os.Getenv("CONFIG_PATH"),
 		standard.CreateProcessorFactory,
 		standard.CreateDB,
 		standard.CreateLoggerFactory,
