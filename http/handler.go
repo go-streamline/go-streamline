@@ -6,12 +6,25 @@ import (
 	"github.com/go-streamline/interfaces/definitions"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"sync"
 	"time"
 )
 
 type flowManagerAPI struct {
 	flowManager      definitions.FlowManager
 	processorFactory definitions.ProcessorFactory
+}
+
+var paginationPool = sync.Pool{
+	New: func() any {
+		return new(definitions.PaginationRequest)
+	},
+}
+
+var flowDTOPool = sync.Pool{
+	New: func() any {
+		return new(dto.FlowDTO)
+	},
 }
 
 func NewFlowManagerAPI(flowManager definitions.FlowManager, processorFactory definitions.ProcessorFactory) *fiber.App {
@@ -42,10 +55,10 @@ func (f *flowManagerAPI) listFlows(c *fiber.Ctx) error {
 	if err != nil {
 		size = 10
 	}
-	pagination := &definitions.PaginationRequest{
-		Page:    page,
-		PerPage: size,
-	}
+	pagination := paginationPool.Get().(*definitions.PaginationRequest)
+	defer paginationPool.Put(pagination)
+	pagination.Page = page
+	pagination.PerPage = size
 	if err := c.QueryParser(pagination); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid pagination parameters"})
 	}
@@ -56,13 +69,30 @@ func (f *flowManagerAPI) listFlows(c *fiber.Ctx) error {
 	}
 	var flowDTOs []*dto.FlowDTO
 	for _, flow := range flows.Data {
-		dto, err := dto.FlowEntityToDTO(flow)
+		flowDTO := flowDTOPool.Get().(*dto.FlowDTO)
+		resetFlowDTO(flowDTO)
+		err = dto.FlowEntityToDTO(flow, flowDTO)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
-		flowDTOs = append(flowDTOs, dto)
+		flowDTOs = append(flowDTOs, flowDTO)
 	}
+	defer func() {
+		for _, flowDTO := range flowDTOs {
+			flowDTOPool.Put(flowDTO)
+		}
+	}()
 	return c.JSON(flowDTOs)
+}
+
+func resetFlowDTO(dto *dto.FlowDTO) {
+	dto.ID = uuid.Nil
+	dto.Name = ""
+	dto.Description = ""
+	dto.Active = false
+	dto.Flow = ""
+	dto.Processors = dto.Processors[:0]
+	dto.TriggerProcessors = dto.TriggerProcessors[:0]
 }
 
 func (f *flowManagerAPI) getFlowByID(c *fiber.Ctx) error {
@@ -74,7 +104,10 @@ func (f *flowManagerAPI) getFlowByID(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	flowDTO, err := dto.FlowEntityToDTO(flow)
+	flowDTO := flowDTOPool.Get().(*dto.FlowDTO)
+	resetFlowDTO(flowDTO)
+	err = dto.FlowEntityToDTO(flow, flowDTO)
+	defer flowDTOPool.Put(flowDTO)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -162,7 +195,10 @@ func (f *flowManagerAPI) saveFlow(c *fiber.Ctx) error {
 	if err := f.flowManager.SaveFlow(flow); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	newFlowDTO, err := dto.FlowEntityToDTO(flow)
+	newFlowDTO := flowDTOPool.Get().(*dto.FlowDTO)
+	resetFlowDTO(newFlowDTO)
+	err = dto.FlowEntityToDTO(flow, newFlowDTO)
+	defer flowDTOPool.Put(newFlowDTO)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

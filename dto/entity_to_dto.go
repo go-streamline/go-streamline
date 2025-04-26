@@ -86,33 +86,29 @@ func parseLogLevel(logLevel string) logrus.Level {
 	}
 }
 
-// FlowEntityToDTO converts a Flow entity to a FlowDTO.
+// FlowEntityToDTO converts a Flow entity to dto.
 // We reconstruct the flow string from the FirstProcessors and their NextProcessors.
-func FlowEntityToDTO(flow *definitions.Flow) (*FlowDTO, error) {
-	flowDTO := &FlowDTO{
-		ID:          flow.ID,
-		Name:        flow.Name,
-		Description: flow.Description,
-		Active:      flow.Active,
-	}
+func FlowEntityToDTO(flow *definitions.Flow, dto *FlowDTO) error {
+	dto.ID = flow.ID
+	dto.Name = flow.Name
+	dto.Description = flow.Description
+	dto.Active = flow.Active
 
-	// Convert all processors to DTOs
+	dto.Processors = dto.Processors[:0]
 	for _, processor := range flow.Processors {
-		dto := ProcessorEntityToDTO(processor)
-		flowDTO.Processors = append(flowDTO.Processors, *dto)
+		p := ProcessorEntityToDTO(processor)
+		dto.Processors = append(dto.Processors, *p)
 	}
 
-	// Convert TriggerProcessors
+	dto.TriggerProcessors = dto.TriggerProcessors[:0]
 	for _, trigger := range flow.TriggerProcessors {
-		dto := TriggerProcessorEntityToDTO(trigger)
-		flowDTO.TriggerProcessors = append(flowDTO.TriggerProcessors, *dto)
+		t := TriggerProcessorEntityToDTO(trigger)
+		dto.TriggerProcessors = append(dto.TriggerProcessors, *t)
 	}
 
-	// If FirstProcessors is not empty, use them as entry points
-	// Otherwise, derive entry processors again (in case they're not provided)
+	// Build flow string
 	firstProcessors := flow.FirstProcessors
 	if len(firstProcessors) == 0 {
-		// Derive if needed
 		referenced := make(map[uuid.UUID]bool)
 		for _, p := range flow.Processors {
 			for _, np := range p.NextProcessors {
@@ -126,7 +122,6 @@ func FlowEntityToDTO(flow *definitions.Flow) (*FlowDTO, error) {
 		}
 	}
 
-	// Build the flow string from the first processors
 	var sb strings.Builder
 	visited := make(map[uuid.UUID]bool)
 	for i, fp := range firstProcessors {
@@ -135,13 +130,13 @@ func FlowEntityToDTO(flow *definitions.Flow) (*FlowDTO, error) {
 		}
 		subFlow, err := serializeProcessor(fp, visited)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		sb.WriteString(subFlow)
 	}
-	flowDTO.Flow = sb.String()
+	dto.Flow = sb.String()
 
-	return flowDTO, nil
+	return nil
 }
 
 // serializeProcessor traverses the graph of processors using NextProcessors to rebuild the flow string.
